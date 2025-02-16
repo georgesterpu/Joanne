@@ -1,21 +1,26 @@
 import streamlit as st
 import requests
 
-st.title("RAG-Powered Q&A")
+st.title("Interactive Q&A with Memory")
+
+# Initialize session state for chat history
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
 
 query = st.text_input("Ask a question:")
 if st.button("Submit") and query.strip():
     try:
-        response = requests.post("http://127.0.0.1:8000/ask", json={"query": query})
+        response = requests.post("http://127.0.0.1:8000/ask", json={"query": query}).json()
+        answer = response.get("answer", "No answer received.")
 
-        # Extract and display answer
-        data = response.json()
-        answer = data.get("answer")  # Ensure "answer" key exists
-        if answer:
-            st.write("### Answer:")
-            st.write(answer)
-        else:
-            st.warning("No answer received from API.")
+        # Save query & answer in history
+        st.session_state.chat_history.append({"question": query, "answer": answer})
+
+        # Display chat history
+        for qa in st.session_state.chat_history:
+            st.write(f"**You:** {qa['question']}")
+            st.write(f"**Bot:** {qa['answer']}")
+            st.write("---")
 
     except requests.exceptions.RequestException as e:
-        st.error(f"Error connecting to FastAPI: {e}")
+        st.error(f"Error: {e}")
