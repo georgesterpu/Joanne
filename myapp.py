@@ -1,12 +1,15 @@
 import os
 import logging
 from dotenv import load_dotenv
-import google.generativeai as genai
+
+from langchain_community.document_loaders import PyMuPDFLoader
 from langchain.text_splitter import CharacterTextSplitter
+
 from langchain_huggingface.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
+
 from langchain.chains import RetrievalQA
-from langchain_community.document_loaders import TextLoader
+import google.generativeai as genai
 from langchain_google_genai.chat_models import ChatGoogleGenerativeAI
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -17,13 +20,8 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 genai.configure(api_key=GEMINI_API_KEY)
 
 # Load and process the document
-loader = TextLoader("sample_report.txt")
-docs = loader.load()
-
-# Split document into chunks for embedding
-text_splitter = CharacterTextSplitter(chunk_size=500, chunk_overlap=50)
-documents = text_splitter.split_documents(docs)
-
+files = ['reports/2024-conocophillips-proxy-statement.pdf',
+          'reports/2023-conocophillips-aim-presentation-1.pdf'] # OCR'd offline
 # Create vector store using FAISS
 embedding_model = HuggingFaceEmbeddings()
 
@@ -34,9 +32,11 @@ if os.path.exists(faiss_index_path + "/index.faiss"):
     vector_store = FAISS.load_local(faiss_index_path, embedding_model, allow_dangerous_deserialization=True)
 else:
     logging.info("Creating new FAISS index...")
+    raw_docs = sum([PyMuPDFLoader(f).load() for f in files], [])
+    text_splitter = CharacterTextSplitter(chunk_size=500, chunk_overlap=50)
+    documents = text_splitter.split_documents(raw_docs)
     vector_store = FAISS.from_documents(documents, embedding_model)
     vector_store.save_local(faiss_index_path)  # Save FAISS index
-vector_store = FAISS.from_documents(documents, embedding_model)
 
 # Create retriever
 retriever = vector_store.as_retriever()
@@ -45,7 +45,7 @@ retriever = vector_store.as_retriever()
 llm = ChatGoogleGenerativeAI(model='gemini-2.0-pro-exp-02-05', google_api_key=GEMINI_API_KEY)
 
 # Create RAG pipeline
-qa_chain = RetrievalQA.from_chain_type(llm, retriever=retriever)
+qa_chain = RetrievalQA.from_chain_type(llm, retriever=retriever, return_source_documents=True)
 
 # Function to query the RAG system
 def ask_rag(query):
@@ -55,6 +55,4 @@ def ask_rag(query):
 
 # Run some test queries
 if __name__ == "__main__":
-    ask_rag("What are the major trends in AI?")
-    ask_rag("Which companies are leading AI research?")
-    ask_rag("What are the biggest AI investment areas?")
+    ask_rag("What is the purpose of the proxy statement?")
