@@ -8,11 +8,23 @@ from langchain.text_splitter import CharacterTextSplitter
 from langchain_huggingface.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
 
-from langchain.chains import ConversationalRetrievalChain
+from langchain.chains import ConversationalRetrievalChain, create_history_aware_retriever, create_retrieval_chain
+from langchain.chains.combine_documents import create_stuff_documents_chain
+from langchain_core.prompts import ChatPromptTemplate
 from langchain.memory import ConversationBufferMemory
 import google.generativeai as genai
 from langchain_google_genai.chat_models import ChatGoogleGenerativeAI
 from langchain.schema import HumanMessage, AIMessage
+
+from spellchecker import SpellChecker
+
+spell = SpellChecker()
+
+def preprocess_query(query):
+    """Preprocess the query for better understanding."""
+    # Correct spelling
+    corrected_query = " ".join([spell.correction(word) for word in query.split()])
+    return corrected_query
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
@@ -22,8 +34,8 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 genai.configure(api_key=GEMINI_API_KEY)
 
 # Load and process the document
-files = ['reports/2024-conocophillips-proxy-statement.pdf',
-          'reports/2023-conocophillips-aim-presentation-1.pdf'] # OCR'd offline
+files = ['../reports/2024-conocophillips-proxy-statement.pdf',
+          '../reports/2023-conocophillips-aim-presentation-1.pdf'] # OCR'd offline
 # Create vector store using FAISS
 embedding_model = HuggingFaceEmbeddings()
 
@@ -43,17 +55,36 @@ else:
 # Create retriever
 retriever = vector_store.as_retriever()
 # Initialize LLMM
-llm = ChatGoogleGenerativeAI(model='gemini-2.0-pro-exp-02-05', google_api_key=GEMINI_API_KEY)
+llm = ChatGoogleGenerativeAI(model='gemini-2.0-flash-exp', google_api_key=GEMINI_API_KEY)
 
 ## Create RAG pipeline
 # Add conversational memory
 memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
 # Conversational Retrieval Chain
-qa_chain = ConversationalRetrievalChain.from_llm(
-    llm=llm, retriever=retriever, memory=memory)
+# qa_chain = ConversationalRetrievalChain.from_llm(
+#     llm=llm, retriever=retriever, memory=memory,
+#     return_source_documents=True,
+#     output_key='answer')
+
+prompt = ChatPromptTemplate.from_template(
+    """
+    Use the following pieces of context and chat history to answer the user's question.
+    If you don't know the answer, just say that you don't know, don't try to make up an answer.
+    --------------------
+    Chat History: {chat_history}
+    --------------------
+    Context: {context}
+    --------------------
+    Question: {input}
+    """
+)
+
+document_chain = create_stuff_documents_chain(llm, prompt)
+qa_chain = create_retrieval_chain(retriever, document_chain)
 
 def ask_rag(query):
     """Handles queries while maintaining conversation history."""
+    # query = preprocess_query(query)  # possibly buggy
     
     # Retrieve stored chat history
     chat_history = memory.load_memory_variables({})["chat_history"]
@@ -61,11 +92,18 @@ def ask_rag(query):
     # Add user's query to history
     chat_history.append(HumanMessage(content=query))
 
+    # Prepare the input for the RAG chain
+    input_data = {
+        "input": query,  # Use "input" as the key
+        "chat_history": chat_history  # Pass chat history explicitly
+    }
+
     # Invoke RAG chain
-    response = qa_chain.invoke({"question": query, "chat_history": chat_history})
+    response = qa_chain.invoke(input_data)
     
-    # Extract answer
+    # Extract answer and source documents
     answer = response.get("answer") if isinstance(response, dict) else "No relevant information found."
+    source_documents = response.get("context", [])
 
     # Add AI's response to chat history
     chat_history.append(AIMessage(content=answer))
@@ -73,15 +111,25 @@ def ask_rag(query):
     # Update stored memory with new chat history
     memory.save_context({"input": query}, {"output": answer})
 
+    # Extract source information (file and page number) from source documents
+    source_info = []
+    for doc in source_documents:
+        source_info.append({
+            "source_file": doc.metadata.get("source", "Unknown"),
+            "page_number": doc.metadata.get("page", 0),
+            "content": doc.page_content  # Optional: include the actual content
+        })
+
     # Convert chat history to JSON-serializable format
     formatted_history = [
         {"role": "user" if isinstance(msg, HumanMessage) else "bot", "content": msg.content}
         for msg in chat_history
     ]
 
-    # Return structured response
+    # Return structured response with source data
     return {
         "answer": answer,
+        "source_info": source_info,  # Include source data
         "chat_history": formatted_history  # JSON-serializable
     }
 
