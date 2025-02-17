@@ -10,3 +10,4 @@ pymupdf
 python-multipart
 sentence-transformers
 uvicorn
+pyspellchecker
