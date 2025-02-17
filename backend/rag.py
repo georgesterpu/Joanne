@@ -1,28 +1,23 @@
 import os
 import logging
 from dotenv import load_dotenv
-
-from langchain_community.document_loaders import PyMuPDFLoader
+from spellchecker import SpellChecker
 from langchain.text_splitter import CharacterTextSplitter
-
 from langchain_huggingface.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
-
-from langchain.chains import ConversationalRetrievalChain, create_history_aware_retriever, create_retrieval_chain
-from langchain.chains.combine_documents import create_stuff_documents_chain
+from langchain_community.document_loaders import PyMuPDFLoader
 from langchain_core.prompts import ChatPromptTemplate
 from langchain.memory import ConversationBufferMemory
-import google.generativeai as genai
-from langchain_google_genai.chat_models import ChatGoogleGenerativeAI
 from langchain.schema import HumanMessage, AIMessage
-
-from spellchecker import SpellChecker
+from langchain.chains import create_retrieval_chain
+from langchain.chains.combine_documents import create_stuff_documents_chain
+from langchain_google_genai.chat_models import ChatGoogleGenerativeAI
+import google.generativeai as genai
 
 spell = SpellChecker()
 
 def preprocess_query(query):
     """Preprocess the query for better understanding."""
-    # Correct spelling
     corrected_query = " ".join([spell.correction(word) for word in query.split()])
     return corrected_query
 
@@ -54,11 +49,10 @@ else:
 
 # Create retriever
 retriever = vector_store.as_retriever()
-# Initialize LLMM
+# Initialize LLM
 llm = ChatGoogleGenerativeAI(model='gemini-2.0-flash-exp', google_api_key=GEMINI_API_KEY)
 
-## Create RAG pipeline
-# Add conversational memory
+# Create RAG pipeline
 memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
 prompt = ChatPromptTemplate.from_template(
     """
@@ -82,7 +76,7 @@ qa_chain = create_retrieval_chain(retriever, document_chain)
 
 def ask_rag(query):
     """Handles queries while maintaining conversation history."""
-    # query = preprocess_query(query)  # possibly buggy
+    # query = preprocess_query(query)  # possibly buggy, leaving out for now
     
     # Retrieve stored chat history
     chat_history = memory.load_memory_variables({})["chat_history"]
@@ -92,11 +86,10 @@ def ask_rag(query):
 
     # Prepare the input for the RAG chain
     input_data = {
-        "input": query,  # Use "input" as the key
-        "chat_history": chat_history  # Pass chat history explicitly
+        "input": query,
+        "chat_history": chat_history
     }
-
-    # Invoke RAG chain
+    
     response = qa_chain.invoke(input_data)
     
     # Extract answer and source documents

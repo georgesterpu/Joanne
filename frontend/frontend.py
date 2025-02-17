@@ -1,13 +1,34 @@
 import os
 import requests
+from PIL import Image
 import streamlit as st
 
 BACKEND_URL = os.environ.get("BACKEND_URL", "http://127.0.0.1:8000")
-# Configure the page layout (centered) with a professional title
-st.set_page_config(page_title="Joanne AI – Market Research Assistant", layout="centered")
+st.set_page_config(page_title="ConocoPhillips Market Research", layout="centered")
 
-st.title("📊 Joanne AI – Your Market Research Assistant")
+st.title("📊 ConocoPhillips Market Research")
+logo = Image.open("logo.jpg")
 
+# Sidebar
+with st.sidebar:
+    # Display the company logo
+    st.image(logo, use_container_width=True)  # Adjust the width as needed
+
+    # Add a title and description
+    st.title("About This App")
+    st.markdown("""
+        Welcome to the **ConocoPhillips AI Market Research Assistant**! This app allows you to explore and analyze insights from ConocoPhillips' 2023 and 2024 market research reports using AI-powered natural language interactions.
+
+        ### How It Works
+        1. Type your question in the chat box.
+        2. The AI will analyze the reports and provide answers.
+        3. Click on **View Source Information** to see the original data.
+
+        ### Data Source
+        This app is powered by two ConocoPhillips reports:
+        - **2023 ConocoPhillips AIM Presentation**
+        - **2024 ConocoPhillips Proxy Statement**
+    """)
 
 # Initialize session state for chat history
 if "messages" not in st.session_state:
@@ -16,7 +37,7 @@ if "messages" not in st.session_state:
 # Display chat messages in reverse order (newest at the bottom)
 for msg in st.session_state.messages:
     if msg["role"] == "user":
-        st.chat_message("user", avatar="👤").write(msg["content"])
+        st.chat_message("user", avatar="👱‍♀️").write(msg["content"])
     else:
         st.chat_message("assistant", avatar="🤖").write(msg["content"])  # Fixed icon issue
 
@@ -28,7 +49,7 @@ def send_message():
         st.session_state.messages.append({"role": "user", "content": query})
 
         # Display user message
-        with st.chat_message("user", avatar="👤"):
+        with st.chat_message("user", avatar="👱‍♀️"):
             st.write(query)
 
         # Send request to backend API

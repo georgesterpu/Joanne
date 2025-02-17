@@ -1,10 +1,11 @@
-from fastapi import FastAPI, Request
-from pydantic import BaseModel
-from fastapi.templating import Jinja2Templates
-from fastapi.responses import JSONResponse
 import logging
 from rag import ask_rag
+from pydantic import BaseModel
+from fastapi import FastAPI, Request
+from fastapi.templating import Jinja2Templates
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
+
 
 logging.basicConfig(level=logging.INFO)
 
@@ -23,12 +24,11 @@ def serve_home(request: Request):
 
 @app.post("/ask")
 async def ask_question(data: QueryRequest):
-    """Handles incoming queries from the frontend and returns AI responses."""
     query = data.query
     logging.info(f"Received query: {query}")
     try:
         response = ask_rag(query)
-        return JSONResponse(content=response)  # Return full JSON response
+        return JSONResponse(content=response)
     except Exception as e:
         logging.error(f"Error: {str(e)}")
         if "API quota exceeded" in str(e):
