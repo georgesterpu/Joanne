@@ -52,6 +52,7 @@ def send_message():
         # Display user message
         with st.chat_message("user", avatar="👱‍♀️"):
             st.write(query)
+        source_info = []
 
         # Send request to backend API
         try:
