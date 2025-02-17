@@ -9,3 +9,4 @@ langchain-huggingface
 pymupdf
 python-multipart
 sentence-transformers
+uvicorn
