@@ -1,6 +1,8 @@
-import streamlit as st
+import os
 import requests
+import streamlit as st
 
+BACKEND_URL = os.environ.get("BACKEND_URL", "http://127.0.0.1:8000")
 # Configure the page layout (centered) with a professional title
 st.set_page_config(page_title="Joanne AI – Market Research Assistant", layout="centered")
 
@@ -31,7 +33,7 @@ def send_message():
 
         # Send request to backend API
         try:
-            response = requests.post("http://127.0.0.1:8000/ask", json={"query": query}).json()
+            response = requests.post(f"{BACKEND_URL}/ask", json={"query": query}).json()
 
             # Handle API quota error
             if "error" in response and "Resource has been exhausted" in response["error"]:
