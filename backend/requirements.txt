@@ -1,0 +1,11 @@
+faiss-cpu
+fastapi
+google-generativeai
+jinja2
+langchain
+langchain-community
+langchain-google-genai
+langchain-huggingface
+pymupdf
+python-multipart
+sentence-transformers

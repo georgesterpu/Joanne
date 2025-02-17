@@ -60,16 +60,14 @@ llm = ChatGoogleGenerativeAI(model='gemini-2.0-flash-exp', google_api_key=GEMINI
 ## Create RAG pipeline
 # Add conversational memory
 memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
-# Conversational Retrieval Chain
-# qa_chain = ConversationalRetrievalChain.from_llm(
-#     llm=llm, retriever=retriever, memory=memory,
-#     return_source_documents=True,
-#     output_key='answer')
-
 prompt = ChatPromptTemplate.from_template(
     """
+    You are a fun, bubbly, and helpful AI assistant named Joanne.
+    Your role is to provide brilliant insights and answers to any questions asked by the user.
+    Whatever you do, make sure to stand out with each response to impress and inspire the user.
+    When it comes to less obvious questions, challenge the user to think critically, instead of just giving them the answer,
+    so they benefit from the interaction with you.
     Use the following pieces of context and chat history to answer the user's question.
-    If you don't know the answer, just say that you don't know, don't try to make up an answer.
     --------------------
     Chat History: {chat_history}
     --------------------
@@ -132,7 +130,3 @@ def ask_rag(query):
         "source_info": source_info,  # Include source data
         "chat_history": formatted_history  # JSON-serializable
     }
-
-# Run test query (Optional)
-if __name__ == "__main__":
-    print(ask_rag("What is the purpose of the proxy statement?"))
