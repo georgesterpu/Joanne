@@ -7,7 +7,8 @@ BACKEND_URL = os.environ.get("BACKEND_URL", "http://127.0.0.1:8000")
 st.set_page_config(page_title="ConocoPhillips Market Research", layout="centered")
 
 st.title("📊 ConocoPhillips Market Research")
-logo = Image.open("./logo.jpg")
+logo_path = os.path.join(os.path.dirname(__file__), "logo.jpg")
+logo = Image.open(logo_path)
 
 # Sidebar
 with st.sidebar:
