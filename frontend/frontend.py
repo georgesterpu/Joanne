@@ -3,7 +3,8 @@ import requests
 from PIL import Image
 import streamlit as st
 
-BACKEND_URL = os.environ.get("BACKEND_URL", "http://127.0.0.1:8000")
+BACKEND_URL = st.secrets.get("BACKEND_URL", os.environ.get("BACKEND_URL", "http://127.0.0.1:8000"))
+
 st.set_page_config(page_title="ConocoPhillips Market Research", layout="centered")
 
 st.title("📊 ConocoPhillips Market Research")
