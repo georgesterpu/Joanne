@@ -81,7 +81,7 @@ def send_message():
                         st.markdown(f"**Source:** `{doc['source_file']}`, **Page:** `{doc['page_number']}`")
                         # Embed a PDF viewer for the specific page
                         pdf_filename = doc["source_file"].split("/")[-1]  # Extract filename
-                        pdf_url = f"http://127.0.0.1:8000/reports/{pdf_filename}#page={doc['page_number']}"
+                        pdf_url = f"{BACKEND_URL}/reports/{pdf_filename}#page={doc['page_number']}"
                         st.markdown(f"[View PDF Page {doc['page_number']}]({pdf_url})")
 
         # Clear input field
